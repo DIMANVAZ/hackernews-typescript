@@ -1,5 +1,4 @@
 import {extendType, intArg, nonNull, objectType, stringArg} from 'nexus';
-import {NexusGenObjects} from '../../nexus-typegen'
 
 export const Link = objectType({
     name: "Link",
@@ -20,25 +19,30 @@ export const LinkQuery = extendType({  // 2
                 return context.prisma.link.findMany();   // а выдаёт массив. Хотя его тип выше определён
             },
         });
-        // получить одну запись по id: findOne
-        // t.field("findOne", {   // 3
-        //     type: "Link",
-        //     args: {   // 3
-        //         id: nonNull(intArg()),
-        //     },
-        //     resolve(parent, args, context, info) {    // 4
-        //         const {id} = args;
-        //         return links.filter(elem => elem.id === id)[0];
-        //     },
-        // });
+        // получить одну запись по id: findFirst
+        t.field("findFirst", {   // 3
+            type: "Link",
+            args: {   // 3
+                id: nonNull(intArg()),
+            },
+            resolve(parent, args, context, info) {    // 4
+                const {id} = args;
+                return context.prisma.link.findFirst({
+                    where: {
+                        id: id
+                    }
+                });
+            },
+        });
     },
 });
 
-export const LinkMutation = extendType({  // 1
+export const LinkMutation = extendType({
     type: "Mutation",
     definition(t) {
+
         // добавить одну запись: post - и возвращаем эту запись
-        t.nonNull.field("post", {  // 2
+        t.nonNull.field("post", {
             type: "Link",
             args: {   // 3
                 description: nonNull(stringArg()),
@@ -46,54 +50,57 @@ export const LinkMutation = extendType({  // 1
             },
 
             resolve(parent, args, context) {
-                const { description, url } = args;  // 4
+                const { description, url } = args;  // просто для примера, что args можно деструктурить
 
-                const newLink = context.prisma.link.create({
+                return context.prisma.link.create({
                     data: {
                         description: args.description,
                         url: args.url
                     }
-                });
-                return newLink
+                })
             },
         });
+
         // обновить одну запись по id: update
-        // t.nonNull.field("update", {  // 2
-        //     type: "Link",
-        //     args: {   // 3
-        //         id: nonNull(intArg()),
-        //         newDescription: stringArg(),
-        //         newUrl: stringArg(),
-        //     },
-        //
-        //     resolve(parent, args, context) {
-        //         const {id, newUrl, newDescription} = args;
-        //
-        //         const updIndex = links.findIndex(link => link.id === id);
-        //
-        //         if(updIndex === -1){
-        //             return links[0];
-        //
-        //         } else {
-        //             links[updIndex].url = newUrl || links[updIndex].url;
-        //             links[updIndex].description = newDescription || links[updIndex].description;
-        //             return links[updIndex];
-        //         }
-        //     },
-        // });
+        t.nonNull.field("update", {
+            type: "Link",
+            args: {   // 3
+                id: nonNull(intArg()),
+                newDescription: stringArg(),
+                newUrl: stringArg(),
+            },
+
+            resolve(parent, args, context) {
+                const {id, newUrl, newDescription} = args;
+
+                return context.prisma.link.update({
+                    where:{
+                        id:id
+                    },
+                    data:{
+                        url: newUrl,
+                        description: newDescription
+                    }
+                })
+            },
+        });
+
         // удалить одну запись по id: delete. Возвращаем обновлённый (или нет) массив Links
-        // t.nonNull.list.nonNull.field("delete", {  // 2
-        //     type: "Link",
-        //     args: {   // 3
-        //         id: nonNull(intArg()),
-        //     },
-        //
-        //     resolve(parent, args, context) {
-        //         const {id} = args;
-        //
-        //         links = links.filter(el => el.id !== id);
-        //         return links;
-        //     },
-        // });
+        t.nonNull.field("delete", {
+            type: "Link",
+            args: {   // 3
+                id: nonNull(intArg()),
+            },
+
+            resolve(parent, args, context) {
+                const {id} = args;
+
+                return context.prisma.link.delete({
+                    where:{
+                        id:id
+                    }
+                })
+            },
+        });
     },
 });
