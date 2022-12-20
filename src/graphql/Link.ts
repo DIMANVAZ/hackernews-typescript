@@ -1,11 +1,12 @@
 import {extendType, intArg, nonNull, objectType, stringArg} from 'nexus';
 
-export const Link = objectType({
+export const Link = objectType({    // определение объектного типа Link cо всеми её полями
     name: "Link",
     definition(t){
         t.nonNull.int("id");
         t.nonNull.string("description");
         t.nonNull.string("url");
+        t.nonNull.dateTime("createdAt");
         t.field("postedBy", {   // 1
             type: "User",
             resolve(parent, args, context) {  // 2
@@ -14,6 +15,14 @@ export const Link = objectType({
                     .postedBy();
             },
         });
+        t.nonNull.list.nonNull.field("voters", {  // 1
+            type: "User",
+            resolve(parent, args, context) {
+                return context.prisma.link
+                    .findUnique({ where: { id: parent.id } })
+                    .voters();
+            }
+        })
     }
 })
 

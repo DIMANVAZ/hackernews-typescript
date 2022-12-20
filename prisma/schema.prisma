@@ -15,8 +15,9 @@ model Link {
   createdAt   DateTime @default(now()) //
   description String
   url         String
-  postedBy    User?    @relation(fields: [postedById], references: [id]) // служебное поле -в таблице его не будет
+  postedBy    User?    @relation(name: "PostedBy", fields: [postedById], references: [id]) // служебное поле -в таблице его не будет
   postedById  Int?
+  voters      User[]   @relation(name: "Votes") // юзеры, проголосовавшие за Ссылку (Link)
 
 }
 
@@ -25,5 +26,8 @@ model User {
   name     String
   email    String @unique // уникальный - по нему обновлять можно
   password String
-  links    Link[] // указание ссылка на массив Link-ов - у юзера может быть несколько линков
+  links    Link[] @relation(name: "PostedBy") // Ссылки, созданные этим юзером
+  votes    Link[] @relation(name: "Votes") // Ссылки, за которые проголосовал юзер
+
 }
+
