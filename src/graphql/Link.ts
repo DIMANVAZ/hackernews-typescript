@@ -1,4 +1,5 @@
 import {arg, enumType, extendType, inputObjectType, intArg, list, nonNull, objectType, stringArg} from 'nexus';
+import {Context} from "../context";
 
 export const Link = objectType({    // определение объектного типа Link cо всеми её полями
     name: "Link",
@@ -94,12 +95,15 @@ export const LinkMutation = extendType({
                 url: nonNull(stringArg()),
             },
 
-            resolve(parent, args, context) {
-                const { userId } = context;
+            async resolve(parent, args, context) {
+                // const { userId } = context;
+                //
+                // if(!userId){    // если юзерid вытащить не смогли - значит, не авторизован, постить не может
+                //     throw new Error("Cannot post without logging in!")
+                // }
 
-                if(!userId){    // если юзерid вытащить не смогли - значит, не авторизован, постить не может
-                    throw new Error("Cannot post without logging in!")
-                }
+                const userId = await checkPermissions("post", 0, context);
+                console.log(userId)
 
                 return context.prisma.link.create({
                     data: {
@@ -112,7 +116,9 @@ export const LinkMutation = extendType({
             },
         });
 
-        // обновить одну запись по id: update. Добавить проверку на токен-кокен и на владение обновляемой инфой (userId должен совпасть)
+        // обновить одну запись по id: update.
+        // Добавлена проверка на токен-кокен(т.е. что юзер авторизован)
+        // и на владение обновляемой инфой (userId должен совпасть)
         t.nonNull.field("update", {
             type: "Link",
             args: {   // 3
@@ -124,26 +130,30 @@ export const LinkMutation = extendType({
             async resolve(parent, args, context) {
                 const {id, newUrl, newDescription} = args;
 
-                const { userId } = context;
+                const { userId } = context; // id юзера, передаваемый с токеном в заголовке
 
-                if(!userId){    // если юзерid вытащить не смогли - значит, не авторизован, постить не может
+                if(!userId){    // если userId вытащить не смогли - значит, не авторизован, постить не может
                     throw new Error("Cannot update without logging in!")
                 }
 
-                const postById = await context.prisma.link.findFirst({
+                const linkByid = await context.prisma.link.findFirst({  // находим пост
                     where:{
-                        id:id
+                        id
                     },
                     select:{
                         postedBy:true
                     }
                 })
+                const authorId = linkByid.postedBy.id;
 
-                console.log('postById = async', postById)
+                if(userId !== authorId){
+                    console.log('userId !== authorId', userId, authorId);
+                    throw new Error("Cannot update post of other user!")
+                }
 
                 return context.prisma.link.update({
                     where:{
-                        id:id
+                        id
                     },
                     data:{
                         url: newUrl,
@@ -196,3 +206,31 @@ export const Feed = objectType({
         t.id("id");  // 3
     },
 });
+
+async function checkPermissions(method:String = "post", id:Number,context:Context){
+    const {userId} = context;
+    if(!userId){
+        throw new Error ("Пользователь не авторизован!");
+    }
+
+    if(method.toLowerCase() === "post"){
+        return userId;
+    }
+
+    const linkByid = await context.prisma.link.findFirst({  // находим пост
+        where:{
+            id:id
+        },
+        select:{
+            postedBy:true
+        }
+    })
+    const authorId = linkByid.postedBy.id;
+
+    if(userId !== authorId){
+        console.log('userId !== authorId', userId, authorId);
+        throw new Error(`Cannot ${method} post of other user!`)
+    }
+
+    return userId;
+}
