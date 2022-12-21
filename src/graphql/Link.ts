@@ -96,11 +96,11 @@ export const LinkMutation = extendType({
             },
 
             async resolve(parent, args, context) {
-                // const { userId } = context;
-                //
-                // if(!userId){    // если юзерid вытащить не смогли - значит, не авторизован, постить не может
-                //     throw new Error("Cannot post without logging in!")
-                // }
+                /*  вынесено в функцию checkPermissions
+                    const { userId } = context;
+                    if(!userId){    // если userId вытащить не смогли - значит, не авторизован, постить не может
+                        throw new Error("Cannot post without logging in!")
+                }                                                       */
 
                 const userId = await checkPermissions("post", 0, context);
                 console.log(userId)
@@ -208,16 +208,21 @@ export const Feed = objectType({
 });
 
 async function checkPermissions(method:String = "post", id:Number,context:Context){
+    // Делает проверки для мутаций. Возвращает userId либо ничего;
+
+    // Если нам не прилетел userId в контексте - значит, ошибка авторизации;
     const {userId} = context;
     if(!userId){
         throw new Error ("Пользователь не авторизован!");
     }
 
+    // Если авторизован + метод = post, то вернём userId;
     if(method.toLowerCase() === "post"){
         return userId;
     }
 
-    const linkByid = await context.prisma.link.findFirst({  // находим пост
+    // Ищем id автора поста (поста, который ищём по переданному id);
+    const linkByid = await context.prisma.link.findFirst({  // Находим пост;
         where:{
             id:id
         },
@@ -225,12 +230,10 @@ async function checkPermissions(method:String = "post", id:Number,context:Contex
             postedBy:true
         }
     })
-    const authorId = linkByid.postedBy.id;
+    const authorId = linkByid.postedBy.id;  // Вытаскиваем id автора поста;
 
-    if(userId !== authorId){
+    if(userId !== authorId){    // Если user, пытающийся править пост, не является его автором (т.е. id не совпали) - ошибка.
         console.log('userId !== authorId', userId, authorId);
-        throw new Error(`Cannot ${method} post of other user!`)
+        throw new Error(`Cannot ${method} post of other user!`);
     }
-
-    return userId;
 }
