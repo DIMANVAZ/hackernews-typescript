@@ -65,7 +65,7 @@ export const LinkQuery = extendType({  // 2
             },
         });
         // получить одну запись по id: findFirst - устарело, переделать в соотв. с "feed"
-        t.field("findFirst", {   // 3
+        t.field("findById", {   // 3
             type: "Link",
             args: {   // 3
                 id: nonNull(intArg()),
@@ -95,10 +95,9 @@ export const LinkMutation = extendType({
             },
 
             resolve(parent, args, context) {
-                const { description, url } = args;  // просто для примера, что args можно деструктурить
                 const { userId } = context;
 
-                if(!userId){
+                if(!userId){    // если юзерid вытащить не смогли - значит, не авторизован, постить не может
                     throw new Error("Cannot post without logging in!")
                 }
 
@@ -106,14 +105,14 @@ export const LinkMutation = extendType({
                     data: {
                         description: args.description,
                         url: args.url,
-                        postedBy: {connect: {id: userId}}
+                        postedBy: {connect: {id: userId}}   // подключит к конкретному юзеру (привяжет), если
+                                                            // ... мы авторизованы - т.е. передали ЖБТ токен в заголовках
                     }
                 });
             },
         });
 
-        // обновить одну запись по id: update
-        // УСТАРЕЛО ,ПЕРЕДЕЛАТЬ!!!!! в соответствии с "post", если есть критичные разницы
+        // обновить одну запись по id: update. Добавить проверку на токен-кокен и на владение обновляемой инфой (userId должен совпасть)
         t.nonNull.field("update", {
             type: "Link",
             args: {   // 3
@@ -122,8 +121,25 @@ export const LinkMutation = extendType({
                 newUrl: stringArg(),
             },
 
-            resolve(parent, args, context) {
+            async resolve(parent, args, context) {
                 const {id, newUrl, newDescription} = args;
+
+                const { userId } = context;
+
+                if(!userId){    // если юзерid вытащить не смогли - значит, не авторизован, постить не может
+                    throw new Error("Cannot update without logging in!")
+                }
+
+                const postById = await context.prisma.link.findFirst({
+                    where:{
+                        id:id
+                    },
+                    select:{
+                        postedBy:true
+                    }
+                })
+
+                console.log('postById = async', postById)
 
                 return context.prisma.link.update({
                     where:{
@@ -137,9 +153,9 @@ export const LinkMutation = extendType({
             },
         });
 
-        // удалить одну запись по id: delete. Возвращаем обновлённый (или нет) массив Links
-        // УСТАРЕЛО ,ПЕРЕДЕЛАТЬ!!!!! в соответствии с "post", если есть критичные разницы
-        t.nonNull.field("delete", {
+        // удалить одну запись по id: delete. Возвращает id удалённого объекта или exception
+        // Добавить проверку на токен-кокен
+         t.nonNull.field("delete", {
             type: "Link",
             args: {   // 3
                 id: nonNull(intArg()),

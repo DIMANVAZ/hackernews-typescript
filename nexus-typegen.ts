@@ -116,7 +116,7 @@ export interface NexusGenFieldTypes {
   }
   Query: { // field return type
     feed: NexusGenRootTypes['Feed']; // Feed!
-    findFirst: NexusGenRootTypes['Link'] | null; // Link
+    findById: NexusGenRootTypes['Link'] | null; // Link
   }
   User: { // field return type
     email: string; // String!
@@ -159,7 +159,7 @@ export interface NexusGenFieldTypeNames {
   }
   Query: { // field return type name
     feed: 'Feed'
-    findFirst: 'Link'
+    findById: 'Link'
   }
   User: { // field return type name
     email: 'String'
@@ -208,7 +208,7 @@ export interface NexusGenArgTypes {
       skip?: number | null; // Int
       take?: number | null; // Int
     }
-    findFirst: { // args
+    findById: { // args
       id: number; // Int!
     }
   }

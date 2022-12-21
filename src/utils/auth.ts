@@ -2,7 +2,7 @@ import * as jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
 export const APP_SECRET = process.env.APP_SECRET || 'show app_secret ERROR ';
-console.log(APP_SECRET);
+//console.log(APP_SECRET);
 
 export interface AuthTokenPayload {  // 1 - определили интерфейс (какБыТип) для полезного содержимого кокена
     userId: number;
