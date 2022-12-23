@@ -96,14 +96,7 @@ export const LinkMutation = extendType({
             },
 
             async resolve(parent, args, context) {
-                /*  вынесено в функцию checkPermissions
-                    const { userId } = context;
-                    if(!userId){    // если userId вытащить не смогли - значит, не авторизован, постить не может
-                        throw new Error("Cannot post without logging in!")
-                }                                                       */
-
                 const userId = await checkPermissions("post", 0, context);
-                console.log(userId)
 
                 return context.prisma.link.create({
                     data: {
@@ -117,8 +110,7 @@ export const LinkMutation = extendType({
         });
 
         // обновить одну запись по id: update.
-        // Добавлена проверка на токен-кокен(т.е. что юзер авторизован)
-        // и на владение обновляемой инфой (userId должен совпасть)
+
         t.nonNull.field("update", {
             type: "Link",
             args: {   // 3
@@ -130,28 +122,9 @@ export const LinkMutation = extendType({
             async resolve(parent, args, context) {
                 const {id, newUrl, newDescription} = args;
 
-                const { userId } = context; // id юзера, передаваемый с токеном в заголовке
+                context = <Context>await checkPermissions("update", id, context);
 
-                if(!userId){    // если userId вытащить не смогли - значит, не авторизован, постить не может
-                    throw new Error("Cannot update without logging in!")
-                }
-
-                const linkByid = await context.prisma.link.findFirst({  // находим пост
-                    where:{
-                        id
-                    },
-                    select:{
-                        postedBy:true
-                    }
-                })
-                const authorId = linkByid.postedBy.id;
-
-                if(userId !== authorId){
-                    console.log('userId !== authorId', userId, authorId);
-                    throw new Error("Cannot update post of other user!")
-                }
-
-                return context.prisma.link.update({
+                const result = await context.prisma.link.update({
                     where:{
                         id
                     },
@@ -160,25 +133,32 @@ export const LinkMutation = extendType({
                         description: newDescription
                     }
                 })
+                await context.prisma.$disconnect();
+                return result;
             },
         });
 
         // удалить одну запись по id: delete. Возвращает id удалённого объекта или exception
-        // Добавить проверку на токен-кокен
+
          t.nonNull.field("delete", {
             type: "Link",
             args: {   // 3
                 id: nonNull(intArg()),
             },
 
-            resolve(parent, args, context) {
+            async resolve(parent, args, context) {
                 const {id} = args;
 
-                return context.prisma.link.delete({
+                // context содержит экземпляр prisma-client: это удобно, чтобы делать $disconnect();
+                context = <Context>await checkPermissions("delete", id, context);
+
+                const result = await context.prisma.link.delete({
                     where:{
                         id:id
                     }
-                })
+                });
+                await context.prisma.$disconnect();
+                return result;
             },
         });
     },
@@ -208,7 +188,8 @@ export const Feed = objectType({
 });
 
 async function checkPermissions(method:String = "post", id:Number,context:Context){
-    // Делает проверки для мутаций. Возвращает userId либо ничего;
+    // Делает проверки для мутаций. Возвращает userId либо context;
+    // context содержит экземпляр prisma-client: это удобно, чтобы делать $disconnect();
 
     // Если нам не прилетел userId в контексте - значит, ошибка авторизации;
     const {userId} = context;
@@ -236,4 +217,6 @@ async function checkPermissions(method:String = "post", id:Number,context:Contex
         console.log('userId !== authorId', userId, authorId);
         throw new Error(`Cannot ${method} post of other user!`);
     }
+
+    return context;
 }
