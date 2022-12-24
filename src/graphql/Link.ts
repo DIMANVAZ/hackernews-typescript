@@ -1,5 +1,3 @@
-//@ts-ignore
-
 import {arg, enumType, extendType, inputObjectType, intArg, list, nonNull, objectType, stringArg} from 'nexus';
 import {Context} from "../context";
 
