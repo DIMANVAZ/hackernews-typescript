@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+
+  # Docker connection string for local machine: postgresql://postgres:root@localhost:5433/
+
+  postgres:
+    image: postgres:13.5    # 1
+    restart: always
+    environment:            # 2
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+    volumes:                # 3
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - '5433:5433'         # 4
+
+volumes:
+  postgres:
