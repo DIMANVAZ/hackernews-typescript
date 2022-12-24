@@ -1,18 +1,20 @@
 version: '3.8'
 services:
 
-  # Docker connection string for local machine: postgresql://postgres:root@localhost:5433/
+  # Docker connection string for local machine: postgresql://postgres:root@localhost:5430
+  # то есть DATABASE_URL в файле .env = "postgresql://postgres:root@localhost:5430"
+  # и НАЗВАНИЕ БД нигде не фигурирует!! Но всё работает! Как настроить?
 
   postgres:
     image: postgres:13.5    # 1
     restart: always
     environment:            # 2
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=root
+      - POSTGRES_PASSWORD=mudak
     volumes:                # 3
       - postgres:/var/lib/postgresql/data
     ports:
-      - '5433:5433'         # 4
+      - '5431:5432'         # 4
 
 volumes:
   postgres:
