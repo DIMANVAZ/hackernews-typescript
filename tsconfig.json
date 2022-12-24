@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
+    "checkJs": false,
     "module": "commonjs",
     "target": "es2018",
     "sourceMap": true,
     "lib": [
           "esnext"
       ],
-    "strict": true,
+    "strict": false,
     "rootDir": ".",
     "outDir": "dist",
     "esModuleInterop": true,
